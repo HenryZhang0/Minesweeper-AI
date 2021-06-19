@@ -4,7 +4,7 @@ import pygame
 
 size_x = 10
 size_y = 10
-total_mines = 15
+total_mines = 5
 blockSize = 20
 
 WINDOW_HEIGHT = 20*size_y
@@ -17,35 +17,40 @@ SCREEN = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 CLOCK = pygame.time.Clock()
 
 
-def set_board(size_x, size_y, total_mines):
+
+def set_board(size_x, size_y, total_mines, first_x, first_y):
     board = [[0 for i in range(size_y)] for j in range(size_x)]
-    while total_mines > 0:
+    def num(x,y):
+        if x < 0 or x >= size_x or y < 0 or y >= size_y:  # out of range
+            return
+        if not board[x][y] == -1:
+            board[x][y] += 1
+        else:
+            print('setnumber error', x,y)
+    counter = total_mines
+    while counter > 0:
         x, y = random.randint(1, size_x)-1, random.randint(1, size_y)-1
-        if board[x][y] == 0:
+        if board[x][y] == 0 and not (x == first_x and y == first_y):
             board[x][y] = -1
-            total_mines -= 1
+            counter -= 1
     for j in range(size_y):
         for i in range(size_x):
             if board[i][j] == -1:
-                if i+1 < size_x:
-                    board[i+1][j] += 1
-                if i-1 >= 0:
-                    board[i-1][j] += 1
-                if j+1 < size_y:
-                    board[i][j+1] += 1
-                if j-1 >= 0:
-                    board[i][j-1] += 1
-
+                num(i+1,j), num(i-1,j),num(i,j+1),num(i,j-1)
+                num(i+1,j-1), num(i-1,j+1),num(i+1,j+1),num(i-1,j-1)
     print(board)
+    if not board[first_x][first_y] == 0:
+        return set_board(size_x, size_y, total_mines, first_x, first_y)
     return board
 
 
-mines = set_board(size_x, size_y, total_mines)
 board = [[0 for i in range(size_y)] for j in range(size_x)]
+mines = [[0 for i in range(size_y)] for j in range(size_x)]
 
+first_click = True
 
 def main():
-    global SCREEN, CLOCK, blockSize
+    global SCREEN, CLOCK, blockSize, first_click, mines
     pygame.init()
     SCREEN.fill(BLACK)
 
@@ -58,29 +63,28 @@ def main():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = event.pos
                 x, y = int(x/blockSize), int(y/blockSize)
+                if first_click:
+                    first_click = False
+                    mines = set_board(size_x, size_y, total_mines, x, y)
                 reveal(x, y, True)
 
         pygame.display.update()
-
-
-print(mines, mines[1][2])
 
 
 def clickedMine(x, y):
     global board
     print('CLICKED MINE')
     board[x][y] = -1
-    print('CLICKED MINE')
 
 
 def reveal(x, y, first_click=False):
     global board
     if first_click:  # if mouseclick
         print('Clicked', x, y)
-        if mines[x][y]:
+        if mines[x][y] == -1:
+            clickedMine(x,y)
+        elif mines[x][y]:
             board[x][y] = 1
-        elif mines[x][y] == -1:
-            clickedMine()
     if x < 0 or x >= size_x or y < 0 or y >= size_y:  # out of range
         return
     if board[x][y] == 1:
