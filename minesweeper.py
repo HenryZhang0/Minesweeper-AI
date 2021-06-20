@@ -2,21 +2,13 @@ import random
 import pygame
 import sys
 
-size_x = 9
-size_y = 9
-total_mines = 15
-SCALE = 50
-
-
 class InputBox:
-
     def __init__(self, x, y, w, h, text=''):
         self.rect = pygame.Rect(x, y, w, h)
         self.color = COLOR_INACTIVE
         self.text = text
         self.txt_surface = FONT.render(text, True, self.color)
         self.active = False
-
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             # If the user clicked on the input_box rect.
@@ -29,26 +21,28 @@ class InputBox:
             self.color = COLOR_ACTIVE if self.active else COLOR_INACTIVE
         if event.type == pygame.KEYDOWN:
             if self.active:
-                if event.key == pygame.K_RETURN:
-                    print(self.text)
-                    self.text = ''
-                elif event.key == pygame.K_BACKSPACE:
+                if event.key == pygame.K_BACKSPACE:
                     self.text = self.text[:-1]
                 else:
-                    self.text += event.unicode
+                    if len(self.text) < 2:
+                        self.text += event.unicode
                 # Re-render the text.
                 self.txt_surface = FONT.render(self.text, True, self.color)
-
     def update(self):
         # Resize the box if the text is too long.
         width = max(200, self.txt_surface.get_width()+10)
         self.rect.w = width
-
     def draw(self, screen):
         # Blit the text.
-        screen.blit(self.txt_surface, (self.rect.x+5, self.rect.y+5))
+        screen.blit(self.txt_surface, self.txt_surface.get_rect(
+            x=self.rect.x+5, centery=self.rect.centery))
         # Blit the rect.
-        pygame.draw.rect(screen, self.color, self.rect, 2)
+        #pygame.draw.rect(screen, self.color, self.rect, 2)
+
+size_x = 9
+size_y = 9
+total_mines = 15
+SCALE = 40
 
 STAT_WIDTH = 7
 WINDOW_HEIGHT = SCALE*size_y + 2*SCALE + int(1.5*SCALE)
@@ -60,13 +54,14 @@ FONT2 = pygame.font.SysFont("Microsoft Yahei UI Light", int(SCALE/2.5))
 surface = pygame.Surface((40, 60))
 
 STAT_RECT = pygame.Rect(0, 0, WINDOW_WIDTH, SCALE*2)
-SETTINGS_RECT = surface.get_rect(x=0,y=SCALE*size_y + 2*SCALE,width= WINDOW_WIDTH, height = int(SCALE*1.8))
-RESTART_RECT = surface.get_rect(width = int(9/4*SCALE), height = int(SCALE*1.5),center = STAT_RECT.center)
-AI_RECT = surface.get_rect(width = int(9/4*SCALE), height = int(SCALE*1.5),centery = STAT_RECT.centery, centerx = STAT_RECT.centerx -3*SCALE)
-AUTO_RECT = surface.get_rect(width = int(9/4*SCALE), height = int(SCALE*1.5),centery = STAT_RECT.centery, centerx = STAT_RECT.centerx +3*SCALE)
-
-
-#INP_RECT_1 = pygame.Rect()
+SETTINGS_RECT = surface.get_rect(
+    x=0, y=SCALE*size_y + 2*SCALE, width=WINDOW_WIDTH, height=int(SCALE*1.8))
+RESTART_RECT = surface.get_rect(
+    width=int(9/4*SCALE), height=int(SCALE*1.5), center=STAT_RECT.center)
+AI_RECT = surface.get_rect(width=int(9/4*SCALE), height=int(SCALE*1.5),
+                           centery=STAT_RECT.centery, centerx=STAT_RECT.centerx - 3*SCALE)
+AUTO_RECT = surface.get_rect(width=int(9/4*SCALE), height=int(SCALE*1.5),
+                             centery=STAT_RECT.centery, centerx=STAT_RECT.centerx + 3*SCALE)
 
 BLACK = (0, 0, 0)
 WHITE = (200, 200, 200)
@@ -78,47 +73,63 @@ RED = (224, 30, 37)
 COLOR_INACTIVE = pygame.Color('lightskyblue3')
 COLOR_ACTIVE = pygame.Color('dodgerblue2')
 
-SCREEN = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT),pygame.RESIZABLE)
+SCREEN = pygame.display.set_mode(
+    (WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
 CLOCK = pygame.time.Clock()
 
-width_input = InputBox(STAT_RECT.centerx-3*SCALE+int(SCALE/15), SETTINGS_RECT.centery-int(SCALE/2.5),int(SCALE*1.2), int(SCALE/1.5), text = str(size_x))
-height_input = InputBox(STAT_RECT.centerx, SETTINGS_RECT.centery-int(SCALE/2.5),int(SCALE*1.2), int(SCALE/1.5), text = str(size_y))
-mines_input = InputBox(STAT_RECT.centerx+3*SCALE-int(SCALE/15), SETTINGS_RECT.centery-int(SCALE/2.5),int(SCALE*1.2), int(SCALE/1.5), text = str(total_mines))
+width_input = InputBox(STAT_RECT.centerx-3*SCALE+int(SCALE/15), SETTINGS_RECT.centery -
+                       int(SCALE/2.5), int(SCALE/1.6), int(SCALE/1.5), text=str(size_x))
+height_input = InputBox(STAT_RECT.centerx-1*SCALE+int(SCALE/15), SETTINGS_RECT.centery -
+                        int(SCALE/2.5), int(SCALE/1.6), int(SCALE/1.5), text=str(size_y))
+mines_input = InputBox(STAT_RECT.centerx+1*SCALE-int(SCALE/15), SETTINGS_RECT.centery -
+                       int(SCALE/2.5), int(SCALE/1.6), int(SCALE/1.5), text=str(total_mines))
+scale_input = InputBox(STAT_RECT.centerx+3*SCALE-int(SCALE/15), SETTINGS_RECT.centery -
+                       int(SCALE/2.5), int(SCALE/1.6), int(SCALE/1.5), text=str(SCALE))
+input_boxes = [width_input, height_input, mines_input, scale_input]
 
-input_boxes = [width_input, height_input, mines_input]
 
 def drawStats():
-    global FONT, SCREEN, STAT_RECT, SETTINGS_RECT
+    global FONT, SCREEN, STAT_RECT, SETTINGS_RECT, AI_RECT
     pygame.draw.rect(SCREEN, LIGHT, STAT_RECT)
     pygame.draw.rect(SCREEN, DARK, SETTINGS_RECT)
     surface = pygame.Surface((40, 60))
-    
-    RESTART_RECT = surface.get_rect(width = int(9/4*SCALE), height = int(SCALE*1.5),center = STAT_RECT.center)
+
+    RESTART_RECT = surface.get_rect(
+        width=int(9/4*SCALE), height=int(SCALE*1.5), center=STAT_RECT.center)
     pygame.draw.rect(SCREEN, DARK, RESTART_RECT)
     restartLabel = FONT.render("Restart", 1, WHITE)
-    SCREEN.blit(restartLabel, restartLabel.get_rect(center=RESTART_RECT.center))
-    
-    AI_RECT = surface.get_rect(width = int(9/4*SCALE), height = int(SCALE*1.5),centery = STAT_RECT.centery, centerx = STAT_RECT.centerx -3*SCALE)
+    SCREEN.blit(restartLabel, restartLabel.get_rect(
+        center=RESTART_RECT.center))
+
+    AI_RECT = surface.get_rect(width=int(9/4*SCALE), height=int(SCALE*1.5),
+                               centery=STAT_RECT.centery, centerx=STAT_RECT.centerx - 3*SCALE)
     pygame.draw.rect(SCREEN, DARK, AI_RECT)
-    aiLabel = FONT.render("AI OFF", 1, RED)
+    if AI_ON:
+        aiLabel = FONT.render("AI ON", 1, GREEN)
+    else:
+        aiLabel = FONT.render("AI OFF", 1, RED)
     SCREEN.blit(aiLabel, aiLabel.get_rect(center=AI_RECT.center))
 
-    AUTO_RECT = surface.get_rect(width = int(9/4*SCALE), height = int(SCALE*1.5),centery = STAT_RECT.centery, centerx = STAT_RECT.centerx +3*SCALE)
+    AUTO_RECT = surface.get_rect(width=int(9/4*SCALE), height=int(
+        SCALE*1.5), centery=STAT_RECT.centery, centerx=STAT_RECT.centerx + 3*SCALE)
     pygame.draw.rect(SCREEN, DARK, AUTO_RECT)
     autoLabel = FONT.render("Auto-solve", 1, BLUE)
     SCREEN.blit(autoLabel, autoLabel.get_rect(center=AUTO_RECT.center))
 
-    SCREEN.blit(FONT2.render("Width", 1, WHITE), FONT.render("Width", 1, WHITE).get_rect(centery= SETTINGS_RECT.centery, right = SETTINGS_RECT.centerx - 3*SCALE))
-    SCREEN.blit(FONT2.render("Height", 1, WHITE), FONT.render("Height", 1, WHITE).get_rect(centery= SETTINGS_RECT.centery, right = SETTINGS_RECT.centerx))
-    SCREEN.blit(FONT2.render("Mines", 1, WHITE), FONT.render("Mines", 1, WHITE).get_rect(centery= SETTINGS_RECT.centery, right = SETTINGS_RECT.centerx + 3*SCALE))
-    
+    SCREEN.blit(FONT2.render("Width", 1, WHITE), FONT.render("Width", 1, WHITE).get_rect(
+        centery=SETTINGS_RECT.centery, right=SETTINGS_RECT.centerx - 3*SCALE))
+    SCREEN.blit(FONT2.render("Height", 1, WHITE), FONT.render("Height", 1, WHITE).get_rect(
+        centery=SETTINGS_RECT.centery, right=SETTINGS_RECT.centerx - 1*SCALE))
+    SCREEN.blit(FONT2.render("Mines", 1, WHITE), FONT.render("Mines", 1, WHITE).get_rect(
+        centery=SETTINGS_RECT.centery, right=SETTINGS_RECT.centerx + 1*SCALE))
+    SCREEN.blit(FONT2.render("Scale", 1, WHITE), FONT.render("Scale", 1, WHITE).get_rect(
+        centery=SETTINGS_RECT.centery, right=SETTINGS_RECT.centerx + 3*SCALE))
+
     for box in input_boxes:
         box.draw(SCREEN)
 
-
 def set_board(size_x, size_y, total_mines, first_x, first_y):
     board = [[0 for i in range(size_y)] for j in range(size_x)]
-
     def num(x, y):
         if x < 0 or x >= size_x or y < 0 or y >= size_y:  # out of range
             return
@@ -142,17 +153,15 @@ def set_board(size_x, size_y, total_mines, first_x, first_y):
         return set_board(size_x, size_y, total_mines, first_x, first_y)
     return board
 
-
 board = [[0 for i in range(size_y)] for j in range(size_x)]
 mines = [[0 for i in range(size_y)] for j in range(size_x)]
-
+light = [[0 for i in range(size_y)] for j in range(size_x)]
 first_click = True
-
+AI_ON = False
 
 def main():
-    global SCREEN, CLOCK, SCALE, first_click, mines, size_x, size_y, total_mines
+    global SCREEN, CLOCK, SCALE, first_click, mines, size_x, size_y, total_mines, light, lighten, AI_ON
     SCREEN.fill(BLACK)
-
     while True:
         drawGrid()
         drawStats()
@@ -162,6 +171,15 @@ def main():
                 sys.exit()
             for box in input_boxes:
                 box.handle_event(event)
+            if event.type == pygame.MOUSEBUTTONDOWN and not SETTINGS_RECT.collidepoint(event.pos) and not STAT_RECT.collidepoint(event.pos):
+                x, y = event.pos
+                x, y = int(x/SCALE), int(y/SCALE)
+                if event.button == 1:
+                    lighten(x, y-2)
+                elif event.button == 2:
+                    lighten(x+1, y-2), lighten(x-1, y-2), lighten(x, y-2+1), lighten(x, y-2-1), lighten(
+                        x + 1, y-2+1), lighten(x+1, y-2-1), lighten(x-1, y-2-1), lighten(x-1, y-2+1)
+
             if event.type == pygame.MOUSEBUTTONUP and not SETTINGS_RECT.collidepoint(event.pos) and not STAT_RECT.collidepoint(event.pos):
                 x, y = event.pos
                 x, y = int(x/SCALE), int(y/SCALE)
@@ -172,71 +190,112 @@ def main():
                 elif event.button == 1:
                     click(x, y)
                 elif event.button == 2:
-                    middleClick(x,y)
+                    middleClick(x, y)
                 elif event.button == 3:
                     flag(x, y)
+
+                light = [[0 for i in range(size_y)] for j in range(size_x)]
+
             if event.type == pygame.MOUSEBUTTONDOWN and RESTART_RECT.collidepoint(event.pos):
                 reset()
-
+            if event.type == pygame.MOUSEBUTTONDOWN and AI_RECT.collidepoint(event.pos):
+                AI_ON = not AI_ON
+                
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+                reset()
+        if gameover():
+            SCREEN.blit(FONT.render("You Lose!", 1, WHITE), FONT.render("You Lose!", 1, WHITE).get_rect(
+                centerx=STAT_RECT.centerx, y=SCALE*2 + size_y*SCALE/2))
+        elif win():
+            SCREEN.blit(FONT.render("You Won!", 1, WHITE), FONT.render("You Won!", 1, WHITE).get_rect(
+                centerx=STAT_RECT.centerx, y=SCALE*2 + size_y*SCALE/2))
 
         pygame.display.update()
 
 
+def win():
+    if total_mines == size_x*size_y - sum(x.count(1) for x in board):
+        return True
+
+def gameover():
+    if sum(x.count(2) for x in board) > 0:
+        return True
+
 def reset():
-    global SCREEN, board, mines, first_click, size_x, size_y, total_mines, STAT_RECT, SETTINGS_RECT, input_boxes
+    global SCREEN, board, mines, first_click, size_x, size_y, total_mines, STAT_RECT, SETTINGS_RECT, input_boxes, light, SCALE, width_input, height_input, mines_input, scale_input, FONT, FONT2, RESTART_RECT
+    print('reset')
     size_x = (int(width_input.text))
     size_y = (int(height_input.text))
     total_mines = int(mines_input.text)
-    SCALE = 50
+    SCALE = int(scale_input.text)
+    print(SCALE)
     first_click = True
     WINDOW_HEIGHT = SCALE*size_y + 2*SCALE + int(1.5*SCALE)
     WINDOW_WIDTH = SCALE*size_x
-    print('reset')
-    
-    pygame.display.quit()
 
-    SCREEN = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT),pygame.RESIZABLE)
-    
+    FONT = pygame.font.SysFont("Microsoft Yahei UI Light", int(SCALE/2))
+    FONT2 = pygame.font.SysFont("Microsoft Yahei UI Light", int(SCALE/2.5))
+
+    pygame.display.quit()
+    SCREEN = pygame.display.set_mode(
+        (WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
     pygame.display.flip()
     board = [[0 for i in range(size_y)] for j in range(size_x)]
     mines = [[0 for i in range(size_y)] for j in range(size_x)]
+    light = [[0 for i in range(size_y)] for j in range(size_x)]
 
     STAT_RECT = pygame.Rect(0, 0, WINDOW_WIDTH, SCALE*2)
-    SETTINGS_RECT = surface.get_rect(x=0,y=SCALE*size_y + 2*SCALE,width= WINDOW_WIDTH, height = int(SCALE*1.8))
-    width_input2 = InputBox(STAT_RECT.centerx-3*SCALE+int(SCALE/15), SETTINGS_RECT.centery-int(SCALE/2.5),int(SCALE*1.2), int(SCALE/1.5), text = str(size_x))
-    height_input2 = InputBox(STAT_RECT.centerx, SETTINGS_RECT.centery-int(SCALE/2.5),int(SCALE*1.2), int(SCALE/1.5), text = str(size_y))
-    mines_input2 = InputBox(STAT_RECT.centerx+3*SCALE-int(SCALE/15), SETTINGS_RECT.centery-int(SCALE/2.5),int(SCALE*1.2), int(SCALE/1.5), text = str(total_mines))
-
-    input_boxes = [width_input2, height_input2, mines_input2]
+    RESTART_RECT = surface.get_rect(
+        width=int(9/4*SCALE), height=int(SCALE*1.5), center=STAT_RECT.center)
+    SETTINGS_RECT = surface.get_rect(
+        x=0, y=SCALE*size_y + 2*SCALE, width=WINDOW_WIDTH, height=int(SCALE*1.8))
+    width_input = InputBox(STAT_RECT.centerx-3*SCALE+int(SCALE/15), SETTINGS_RECT.centery -
+                           int(SCALE/2.5), int(SCALE*1.2), int(SCALE/1.5), text=str(size_x))
+    height_input = InputBox(STAT_RECT.centerx-1*SCALE+int(SCALE/15), SETTINGS_RECT.centery -
+                            int(SCALE/2.5), int(SCALE/1.6), int(SCALE/1.5), text=str(size_y))
+    mines_input = InputBox(STAT_RECT.centerx+1*SCALE-int(SCALE/15), SETTINGS_RECT.centery -
+                           int(SCALE/2.5), int(SCALE/1.6), int(SCALE/1.5), text=str(total_mines))
+    scale_input = InputBox(STAT_RECT.centerx+3*SCALE-int(SCALE/15), SETTINGS_RECT.centery -
+                           int(SCALE/2.5), int(SCALE/1.6), int(SCALE/1.5), text=str(SCALE))
+    input_boxes = [width_input, height_input, mines_input, scale_input]
 
 
 def clickedMine(x, y):
     global board
     print('CLICKED MINE')
-    board[x][y] = 1
+    board[x][y] = 2
 
+def lighten(x, y):
+    global light
+    if x < 0 or x >= size_x or y < 0 or y >= size_y:  # out of range
+        return
+    if board[x][y] == 0:
+        light[x][y] = 1
 
 def click(x, y):
     reveal(x, y-2, True)
 
-def check(x,y):
+def check(x, y):
     if x < 0 or x >= size_x or y < 0 or y >= size_y:  # out of range
         return
     return board[x][y]
 
 def middleClick(x, y):
-    y-=2
+    y -= 2
     if x < 0 or x >= size_x or y < 0 or y >= size_y:  # out of range
         return
-    flags = [check(x+1,y),check(x-1,y),check(x,y+1),check(x,y-1),check(x+1,y+1),check(x+1,y-1),check(x-1,y-1),check(x-1,y+1)].count(-1)
-    print(mines[x][y],[check(x+1,y),check(x-1,y),check(x,y+1),check(x,y-1),check(x+1,y+1),check(x+1,y-1),check(x-1,y-1),check(x-1,y+1)],flags)
+    flags = [check(x+1, y), check(x-1, y), check(x, y+1), check(x, y-1),
+             check(x+1, y+1), check(x+1, y-1), check(x-1, y-1), check(x-1, y+1)].count(-1)
+    print(mines[x][y], [check(x+1, y), check(x-1, y), check(x, y+1), check(x, y-1),
+          check(x+1, y+1), check(x+1, y-1), check(x-1, y-1), check(x-1, y+1)], flags)
     if flags == mines[x][y]:
-        reveal(x+1,y),reveal(x-1,y),reveal(x,y+1),reveal(x,y-1),reveal(x+1,y+1),reveal(x+1,y-1),reveal(x-1,y-1),reveal(x-1,y+1)
+        reveal(x+1, y), reveal(x-1, y), reveal(x, y+1), reveal(x, y-1), reveal(x +
+                                                                               1, y+1), reveal(x+1, y-1), reveal(x-1, y-1), reveal(x-1, y+1)
         print('yay')
 
 def flag(x, y):
     global board
-    y-=2
+    y -= 2
     if board[x][y] == 1:
         return
     if board[x][y] == -1:
@@ -244,13 +303,13 @@ def flag(x, y):
     else:
         board[x][y] = -1
 
-
 def reveal(x, y, first_click=False):
     global board
     if first_click:  # if mouseclick
         print('Clicked', x, y)
         if mines[x][y] == -1:
             clickedMine(x, y)
+            return
         elif mines[x][y]:
             board[x][y] = 1
         if mines[x][y] > 0:
@@ -277,10 +336,12 @@ def drawGrid():
             location = board[int(x/SCALE)][int(y/SCALE)]
             if location == 0:
                 pygame.draw.rect(SCREEN, DARK, rect)
+                if light[int(x/SCALE)][int(y/SCALE)]:
+                    pygame.draw.rect(SCREEN, LIGHT, rect)
+            elif location == 2:
+                pygame.draw.rect(SCREEN, RED, rect)
             elif location == 1:
-                if mines[int(x/SCALE)][int(y/SCALE)] == -1:
-                    pygame.draw.rect(SCREEN, RED, rect)
-                elif mines[int(x/SCALE)][int(y/SCALE)] == 0:
+                if mines[int(x/SCALE)][int(y/SCALE)] == 0:
                     pygame.draw.rect(SCREEN, LIGHT, rect)
                 else:
                     pygame.draw.rect(SCREEN, LIGHT, rect)
